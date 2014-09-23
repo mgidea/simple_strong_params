@@ -8,7 +8,7 @@ module SimpleStrongParams
       @injected_user = user
       @injected_params = params
       @injected_class = klass
-      @prescribed_options = [:model_string, :model_name, :add_params, :remove_params, :attrs, :fetch, :permit_all, :permit]
+      @prescribed_options = [:model_string, :model_name, :add_params, :remove_params, :attrs, :fetch, :permit_all, :permit, :model_conditional]
       @model_string = options[:model_string]
       @model_name = options[:model_name]
       @attrs = options[:attrs]
@@ -19,6 +19,7 @@ module SimpleStrongParams
       @extra_options = options.except(*@prescribed_options)
       @empty_options = options.empty?
       @permit_hash = options[:permit] || {}
+      @model_conditional = translate_model_conditional if options[:model_conditional].present?
       @default_removed_params = klass.default_removed_params.presence
       @default_added_params = klass.default_added_params.presence
       @non_model_namespaces = klass.non_model_namespaces.presence
@@ -104,6 +105,18 @@ module SimpleStrongParams
         name.constantize
       rescue NameError
         return false
+      end
+    end
+
+    def translate_model_conditional
+      if model_conditional
+        if model_conditional.is_a?(Symbol) || model_conditional.is_a?(String)
+          injected_class.send model_conditional
+        elsif model_conditional.is_a?(Proc) || model_conditional.respond_to?(:call)
+          model_conditional.call
+        else
+          return
+        end
       end
     end
 
